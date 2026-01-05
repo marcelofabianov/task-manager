@@ -2,13 +2,16 @@
   "name": "app",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "test": "bun test",
+    "dev": "bun run --watch src/main/server.ts"
   },
   "dependencies": {
-    "elysia": "latest"
+    "elysia": "latest",
+    "typebox": "^1.0.73",
+    "date-fns": "^2.30.0"
   },
   "devDependencies": {
+    "@sinclair/typebox": "^0.34.46",
     "bun-types": "latest"
   },
   "module": "src/index.js"
