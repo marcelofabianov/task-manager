@@ -1,5 +1,5 @@
 import { Value } from '@sinclair/typebox/value';
-import { ConfigSchema, type Config } from './schema';
+import { ConfigSchema, type Config } from '@main/config/schema';
 
 const mapEnvToConfig = () => ({
   general: {
