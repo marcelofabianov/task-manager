@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { GetSystemStatusUseCase } from '@application/usecase/get-system-status.usecase';
+import { GetSystemStatusUseCase } from '@application/usecase/system/get-system-status.usecase';
 import { SystemStatusResponseSchema } from '@schema/value-object/current-date.schema';
 
 const getSystemStatus = new GetSystemStatusUseCase();
