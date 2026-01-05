@@ -6,9 +6,10 @@
     "dev": "bun run --watch src/main/server.ts"
   },
   "dependencies": {
+    "date-fns": "^2.30.0",
     "elysia": "latest",
     "typebox": "^1.0.73",
-    "date-fns": "^2.30.0"
+    "uuidv7": "^1.1.0"
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.46",
