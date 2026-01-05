@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { CurrentDate } from '../../../../src/domain/value-objects/current-date.vo';
+import { CurrentDate } from '@domain/value-object/current-date.vo';
 
 describe('CurrentDate value object', () => {
   it('creates startOfDay from provided date', () => {
