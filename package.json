@@ -14,5 +14,5 @@
     "@sinclair/typebox": "^0.34.46",
     "bun-types": "latest"
   },
-  "module": "src/index.js"
+  "module": "src/main/server.js"
 }

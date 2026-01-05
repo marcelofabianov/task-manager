@@ -1,4 +1,4 @@
-import { Type, Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 
 export const CurrentDateSchema = Type.Object({
   iso: Type.String({ format: 'date-time' }),
@@ -9,4 +9,7 @@ export const CurrentDateSchema = Type.Object({
   description: "Represents the current system date in multiple formats"
 });
 
-export type TCurrentDate = Static<typeof CurrentDateSchema>;
+export const SystemStatusResponseSchema = Type.Object({
+  today: CurrentDateSchema,
+  status: Type.String()
+});

@@ -1,9 +1,9 @@
 services:
   api:
     build: .
-    container_name: bun_api
+    container_name: api
     ports:
-      - "3003:3003"
+      - "8080:8080"
     volumes:
       - .:/app
       - /app/node_modules
