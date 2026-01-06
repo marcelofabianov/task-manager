@@ -1,4 +1,7 @@
 import { Either, ok, fail } from '@main/shared/either';
+import { DomainError } from '@main/shared/domain.error';
+import { UserError } from '@domain/error/user/user.error';
+
 import { UUID } from '@domain/value-object/uuid.vo';
 import { NonEmptyString } from '@domain/value-object/non-empty-string.vo';
 import { Email } from '@domain/value-object/email.vo';
@@ -8,15 +11,17 @@ import { AuditUser } from '@domain/value-object/audit-user.vo';
 import { HashedPassword } from '@domain/value-object/hashed-password.vo';
 import { Status } from '@domain/value-object/status.vo';
 
+import { UserStatus, UserRole } from './user-status.enum';
+
 export interface UserProps {
   id: UUID;
   name: NonEmptyString;
   email: Email;
   phone: Phone;
   hashedPassword: HashedPassword;
-  role: Status;
+  role: Status<UserRole>;
   preferences: Record<string, unknown>;
-  loginStatus: Status;
+  loginStatus: Status<UserStatus>;
   audit: Audit;
 }
 
@@ -25,7 +30,7 @@ export interface NewUserInput {
   phone: string;
   email: string;
   password: string;
-  role: string;
+  role: UserRole;
   preferences: Record<string, unknown>;
 }
 
@@ -42,6 +47,11 @@ export interface PasswordService {
 export class User {
   private props: UserProps;
 
+  static {
+    Status.register(...Object.values(UserStatus));
+    Status.register(...Object.values(UserRole));
+  }
+
   private constructor(props: UserProps) {
     this.props = props;
   }
@@ -50,7 +60,7 @@ export class User {
     input: NewUserInput,
     createdBy: AuditUser,
     passwordService: PasswordService
-  ): Promise<Either<Error, User>> {
+  ): Promise<Either<UserError, User>> {
     try {
       const hashedPassword = await passwordService.hash(input.password);
 
@@ -60,15 +70,18 @@ export class User {
         email: Email.create(input.email),
         phone: Phone.create(input.phone),
         hashedPassword,
-        role: Status.create(input.role),
+        role: Status.create<UserRole>(input.role),
         preferences: input.preferences,
-        loginStatus: Status.create("ACTIVE"),
+        loginStatus: Status.create<UserStatus>(UserStatus.ACTIVE),
         audit: Audit.create(createdBy),
       });
 
       return ok(user);
     } catch (error) {
-      return fail(error as Error);
+      if (error instanceof DomainError) {
+        return fail(UserError.fromDomainError(error));
+      }
+      return fail(UserError.creationFailed(error as Error));
     }
   }
 
@@ -76,47 +89,61 @@ export class User {
     return new User(props);
   }
 
+  public isActive(): boolean {
+    return this.props.loginStatus.getValue() === UserStatus.ACTIVE;
+  }
+
+  public isAdmin(): boolean {
+    return this.props.role.getValue() === UserRole.ADMIN;
+  }
+
   public async changePassword(
     oldPassword: string,
     newPassword: string,
     updatedBy: AuditUser,
     passwordService: PasswordService
-  ): Promise<Either<Error, void>> {
+  ): Promise<Either<UserError, void>> {
     const isCorrect = await passwordService.compare(oldPassword, this.props.hashedPassword);
-    if (!isCorrect) return fail(new Error("Incorrect password"));
+
+    if (!isCorrect) {
+      return fail(UserError.incorrectPassword());
+    }
 
     try {
       this.props.hashedPassword = await passwordService.hash(newPassword);
       this.props.audit = this.props.audit.touch(updatedBy);
       return ok(undefined);
     } catch (error) {
-      return fail(error as Error);
+      return fail(UserError.passwordChangeFailed(error as Error));
     }
   }
 
-  public update(input: UpdateUserInput, updatedBy: AuditUser): Either<Error, void> {
+  public update(input: UpdateUserInput, updatedBy: AuditUser): Either<UserError, void> {
     try {
       this.props.name = NonEmptyString.create(input.name);
       this.props.preferences = input.preferences;
       this.props.audit = this.props.audit.touch(updatedBy);
       return ok(undefined);
     } catch (error) {
-      return fail(error as Error);
+      if (error instanceof DomainError) {
+        return fail(UserError.fromDomainError(error));
+      }
+      return fail(UserError.updateFailed(error as Error));
     }
   }
 
   public inactivate(updatedBy: AuditUser): void {
-    this.props.loginStatus = Status.create("INACTIVE");
+    this.props.loginStatus = Status.create<UserStatus>(UserStatus.INACTIVE);
     this.props.audit = this.props.audit.touch(updatedBy);
   }
 
   public activate(updatedBy: AuditUser): void {
-    this.props.loginStatus = Status.create("ACTIVE");
+    this.props.loginStatus = Status.create<UserStatus>(UserStatus.ACTIVE);
     this.props.audit = this.props.audit.touch(updatedBy);
   }
 
   public promoteToAdmin(updatedBy: AuditUser): void {
-    this.props.role = Status.create("ADMIN");
+    this.props.role = Status.create<UserRole>(UserRole.ADMIN);
     this.props.audit = this.props.audit.touch(updatedBy);
   }
 
@@ -136,6 +163,8 @@ export class User {
       role: this.props.role.toJSON(),
       preferences: this.props.preferences,
       login_status: this.props.loginStatus.toJSON(),
+      is_active: this.isActive(),
+      is_admin: this.isAdmin(),
       ...this.props.audit.toJSON()
     };
   }

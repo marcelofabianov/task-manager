@@ -1,8 +1,11 @@
-export class Status {
-  private readonly value: string;
-  private static readonly registry = new Set<string>();
+import { DomainError } from "@main/shared/domain.error";
 
-  private constructor(value: string) {
+export class Status<T extends string> {
+  private readonly value: T;
+  private static readonly registry = new Set<string>();
+  public static readonly ERR_CODE = "INVALID_STATUS";
+
+  private constructor(value: T) {
     this.value = value;
   }
 
@@ -15,41 +18,29 @@ export class Status {
     }
   }
 
-  public static create(value: string): Status {
-    const normalized = value.toUpperCase().trim();
+  public static create<T extends string>(value: T): Status<T> {
+    const normalized = value.toUpperCase().trim() as T;
 
-    if (normalized === "") {
-      return new Status("");
+    if (normalized === "" as T) {
+      return new Status(normalized);
     }
 
     if (!this.registry.has(normalized)) {
-      throw new Error(`Status '${value}' is not registered as a valid status`);
+      throw new DomainError(
+        `Value '${value}' is not a valid registered status.`,
+        Status.ERR_CODE,
+        { invalidValue: value }
+      );
     }
 
     return new Status(normalized);
   }
 
-  public static clearRegistry(): void {
-    this.registry.clear();
-  }
-
-  public getValue(): string {
+  public getValue(): T {
     return this.value;
   }
 
-  public isValid(): boolean {
-    return Status.registry.has(this.value);
-  }
-
-  public isZero(): boolean {
-    return this.value === "";
-  }
-
-  public equals(other: Status): boolean {
-    return this.value === other.getValue();
-  }
-
-  public toJSON(): string {
+  public toJSON(): T {
     return this.value;
   }
 }
